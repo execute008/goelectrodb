@@ -110,3 +110,6 @@ dist
 
 playground/bundle.js
 test/debug.ts
+
+# Go compiled binaries
+examples/go/basic/basic
