@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/execute008/go-electrodb/electrodb"
+	"github.com/execute008/goelectrodb/electrodb"
 )
 
 // Simple quick start example showing basic CRUD operations

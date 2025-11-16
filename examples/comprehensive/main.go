@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/execute008/go-electrodb/electrodb"
+	"github.com/execute008/goelectrodb/electrodb"
 )
 
 // This example demonstrates all the features of the ElectroDB Go port

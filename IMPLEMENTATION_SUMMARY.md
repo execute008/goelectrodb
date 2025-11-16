@@ -302,7 +302,7 @@ Example test coverage:
 package main
 
 import (
-    "github.com/execute008/go-electrodb/electrodb"
+    "github.com/execute008/goelectrodb/electrodb"
 )
 
 func main() {

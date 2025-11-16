@@ -50,7 +50,7 @@ A comprehensive Go port of [ElectroDB](https://github.com/tywalch/electrodb) - a
 ## Installation
 
 ```bash
-go get github.com/execute008/go-electrodb
+go get github.com/execute008/goelectrodb
 ```
 
 ## Quick Start
@@ -59,7 +59,7 @@ go get github.com/execute008/go-electrodb
 package main
 
 import (
-    "github.com/execute008/go-electrodb/electrodb"
+    "github.com/execute008/goelectrodb/electrodb"
 )
 
 func main() {

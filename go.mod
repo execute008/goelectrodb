@@ -1,4 +1,4 @@
-module github.com/execute008/go-electrodb
+module github.com/execute008/goelectrodb
 
 go 1.24.7
 
