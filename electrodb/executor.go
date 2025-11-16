@@ -58,6 +58,9 @@ func (eh *ExecutionHelper) ExecuteGetItem(ctx context.Context, keys Keys, option
 	// Remove internal keys if not raw mode
 	if options == nil || !options.Raw {
 		item = eh.removeInternalKeys(item)
+		// Apply Get transformations and filter hidden attributes
+		validator := NewValidator(eh.entity)
+		item = validator.TransformForRead(item)
 	}
 
 	return &GetResponse{Data: item}, nil
@@ -103,6 +106,9 @@ func (eh *ExecutionHelper) ExecutePutItem(ctx context.Context, item Item, option
 	// Remove internal keys if not raw mode
 	if options == nil || !options.Raw {
 		responseItem = eh.removeInternalKeys(responseItem)
+		// Apply Get transformations and filter hidden attributes
+		validator := NewValidator(eh.entity)
+		responseItem = validator.TransformForRead(responseItem)
 	}
 
 	return &PutResponse{Data: responseItem}, nil
@@ -156,6 +162,9 @@ func (eh *ExecutionHelper) ExecuteUpdateItem(
 	// Remove internal keys if not raw mode
 	if options == nil || !options.Raw {
 		responseItem = eh.removeInternalKeys(responseItem)
+		// Apply Get transformations and filter hidden attributes
+		validator := NewValidator(eh.entity)
+		responseItem = validator.TransformForRead(responseItem)
 	}
 
 	return &UpdateResponse{Data: responseItem}, nil
@@ -201,6 +210,9 @@ func (eh *ExecutionHelper) ExecuteDeleteItem(ctx context.Context, keys Keys, opt
 	// Remove internal keys if not raw mode
 	if options == nil || !options.Raw {
 		responseItem = eh.removeInternalKeys(responseItem)
+		// Apply Get transformations and filter hidden attributes
+		validator := NewValidator(eh.entity)
+		responseItem = validator.TransformForRead(responseItem)
 	}
 
 	return &DeleteResponse{Data: responseItem}, nil
@@ -268,6 +280,7 @@ func (eh *ExecutionHelper) ExecuteQuery(
 
 	// Parse response
 	items := make([]map[string]interface{}, 0, len(result.Items))
+	validator := NewValidator(eh.entity)
 	for _, item := range result.Items {
 		var parsedItem map[string]interface{}
 		err = attributevalue.UnmarshalMap(item, &parsedItem)
@@ -278,6 +291,8 @@ func (eh *ExecutionHelper) ExecuteQuery(
 		// Remove internal keys if not raw mode
 		if options == nil || !options.Raw {
 			parsedItem = eh.removeInternalKeys(parsedItem)
+			// Apply Get transformations and filter hidden attributes
+			parsedItem = validator.TransformForRead(parsedItem)
 		}
 
 		items = append(items, parsedItem)
@@ -338,6 +353,7 @@ func (eh *ExecutionHelper) ExecuteScan(ctx context.Context, options *QueryOption
 
 	// Parse response
 	items := make([]map[string]interface{}, 0, len(result.Items))
+	validator := NewValidator(eh.entity)
 	for _, item := range result.Items {
 		var parsedItem map[string]interface{}
 		err = attributevalue.UnmarshalMap(item, &parsedItem)
@@ -348,6 +364,8 @@ func (eh *ExecutionHelper) ExecuteScan(ctx context.Context, options *QueryOption
 		// Remove internal keys if not raw mode
 		if options == nil || !options.Raw {
 			parsedItem = eh.removeInternalKeys(parsedItem)
+			// Apply Get transformations and filter hidden attributes
+			parsedItem = validator.TransformForRead(parsedItem)
 		}
 
 		items = append(items, parsedItem)

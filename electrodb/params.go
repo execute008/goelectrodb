@@ -92,14 +92,21 @@ func (pb *ParamsBuilder) BuildPutItemParams(item Item, options *PutOptions) (map
 	// Apply defaults
 	enrichedItem := pb.applyDefaults(item)
 
+	// Validate and transform for write (validation, enum, Set transforms, readonly checks)
+	validator := NewValidator(pb.entity)
+	transformedItem, err := validator.ValidateAndTransformForWrite(enrichedItem, false)
+	if err != nil {
+		return nil, err
+	}
+
 	// Add keys to the item
-	enrichedItem, err := pb.addKeysToItem(enrichedItem)
+	transformedItem, err = pb.addKeysToItem(transformedItem)
 	if err != nil {
 		return nil, err
 	}
 
 	// Convert to DynamoDB format
-	av, err := attributevalue.MarshalMap(enrichedItem)
+	av, err := attributevalue.MarshalMap(transformedItem)
 	if err != nil {
 		return nil, NewElectroError("MarshalError", "Failed to marshal item", err)
 	}
@@ -131,6 +138,15 @@ func (pb *ParamsBuilder) BuildUpdateItemParams(
 	if err != nil {
 		return nil, err
 	}
+
+	// Validate update operations (readonly checks)
+	validator := NewValidator(pb.entity)
+	if err := validator.ValidateUpdateOperations(setOps, addOps, delOps, remOps); err != nil {
+		return nil, err
+	}
+
+	// Apply transformations and validations
+	setOps, addOps, delOps = validator.ApplySetTransformations(setOps, addOps, delOps)
 
 	// Build update expression
 	updateExpr := ""
