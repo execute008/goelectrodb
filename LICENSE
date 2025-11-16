@@ -1,6 +1,7 @@
 MIT License
 
-Copyright (c) 2021 Tyler W. Walch
+Copyright (c) 2021 Tyler W. Walch (Original ElectroDB JavaScript/TypeScript implementation)
+Copyright (c) 2025 execute008 (Go implementation and port)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
