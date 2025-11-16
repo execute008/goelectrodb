@@ -251,7 +251,11 @@ func (eh *ExecutionHelper) ExecuteQuery(
 			input.ScanIndexForward = &scanForward
 		}
 		if options.Cursor != nil {
-			// TODO: Parse cursor into ExclusiveStartKey
+			exclusiveStartKey, err := decodeCursor(*options.Cursor)
+			if err != nil {
+				return nil, err
+			}
+			input.ExclusiveStartKey = exclusiveStartKey
 		}
 	}
 
@@ -278,10 +282,16 @@ func (eh *ExecutionHelper) ExecuteQuery(
 		items = append(items, parsedItem)
 	}
 
-	// TODO: Generate cursor from LastEvaluatedKey
+	// Generate cursor from LastEvaluatedKey
 	var cursor *string
 	if result.LastEvaluatedKey != nil {
-		// cursor = encodeCursor(result.LastEvaluatedKey)
+		encoded, err := encodeCursor(result.LastEvaluatedKey)
+		if err != nil {
+			return nil, err
+		}
+		if encoded != "" {
+			cursor = &encoded
+		}
 	}
 
 	return &QueryResponse{
@@ -306,8 +316,17 @@ func (eh *ExecutionHelper) ExecuteScan(ctx context.Context, options *QueryOption
 		TableName: tableName,
 	}
 
-	if options != nil && options.Limit != nil {
-		input.Limit = options.Limit
+	if options != nil {
+		if options.Limit != nil {
+			input.Limit = options.Limit
+		}
+		if options.Cursor != nil {
+			exclusiveStartKey, err := decodeCursor(*options.Cursor)
+			if err != nil {
+				return nil, err
+			}
+			input.ExclusiveStartKey = exclusiveStartKey
+		}
 	}
 
 	// Execute
@@ -333,8 +352,21 @@ func (eh *ExecutionHelper) ExecuteScan(ctx context.Context, options *QueryOption
 		items = append(items, parsedItem)
 	}
 
+	// Generate cursor from LastEvaluatedKey
+	var cursor *string
+	if result.LastEvaluatedKey != nil {
+		encoded, err := encodeCursor(result.LastEvaluatedKey)
+		if err != nil {
+			return nil, err
+		}
+		if encoded != "" {
+			cursor = &encoded
+		}
+	}
+
 	return &ScanResponse{
-		Data: items,
+		Data:   items,
+		Cursor: cursor,
 	}, nil
 }
 
