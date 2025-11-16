@@ -92,6 +92,12 @@ func (pb *ParamsBuilder) BuildPutItemParams(item Item, options *PutOptions) (map
 	// Apply defaults
 	enrichedItem := pb.applyDefaults(item)
 
+	// Apply automatic timestamps
+	enrichedItem = ApplyTimestamps(enrichedItem, pb.entity.schema, false)
+
+	// Apply attribute padding
+	enrichedItem = ApplyPadding(enrichedItem, pb.entity.schema)
+
 	// Validate and transform for write (validation, enum, Set transforms, readonly checks)
 	validator := NewValidator(pb.entity)
 	transformedItem, err := validator.ValidateAndTransformForWrite(enrichedItem, false)
@@ -142,6 +148,9 @@ func (pb *ParamsBuilder) BuildUpdateItemParams(
 	if err != nil {
 		return nil, err
 	}
+
+	// Apply automatic timestamps to update operations
+	setOps = ApplyUpdateTimestamps(setOps, pb.entity.schema)
 
 	// Validate update operations (readonly checks)
 	validator := NewValidator(pb.entity)

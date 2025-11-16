@@ -58,6 +58,8 @@ func (eh *ExecutionHelper) ExecuteGetItem(ctx context.Context, keys Keys, option
 	// Remove internal keys if not raw mode
 	if options == nil || !options.Raw {
 		item = eh.removeInternalKeys(item)
+		// Remove padding
+		item = RemovePadding(item, eh.entity.schema)
 		// Apply Get transformations and filter hidden attributes
 		validator := NewValidator(eh.entity)
 		item = validator.TransformForRead(item)
@@ -106,6 +108,8 @@ func (eh *ExecutionHelper) ExecutePutItem(ctx context.Context, item Item, option
 	// Remove internal keys if not raw mode
 	if options == nil || !options.Raw {
 		responseItem = eh.removeInternalKeys(responseItem)
+		// Remove padding
+		responseItem = RemovePadding(responseItem, eh.entity.schema)
 		// Apply Get transformations and filter hidden attributes
 		validator := NewValidator(eh.entity)
 		responseItem = validator.TransformForRead(responseItem)
@@ -166,6 +170,8 @@ func (eh *ExecutionHelper) ExecuteUpdateItem(
 	// Remove internal keys if not raw mode
 	if options == nil || !options.Raw {
 		responseItem = eh.removeInternalKeys(responseItem)
+		// Remove padding
+		responseItem = RemovePadding(responseItem, eh.entity.schema)
 		// Apply Get transformations and filter hidden attributes
 		validator := NewValidator(eh.entity)
 		responseItem = validator.TransformForRead(responseItem)
@@ -214,6 +220,8 @@ func (eh *ExecutionHelper) ExecuteDeleteItem(ctx context.Context, keys Keys, opt
 	// Remove internal keys if not raw mode
 	if options == nil || !options.Raw {
 		responseItem = eh.removeInternalKeys(responseItem)
+		// Remove padding
+		responseItem = RemovePadding(responseItem, eh.entity.schema)
 		// Apply Get transformations and filter hidden attributes
 		validator := NewValidator(eh.entity)
 		responseItem = validator.TransformForRead(responseItem)
@@ -295,6 +303,8 @@ func (eh *ExecutionHelper) ExecuteQuery(
 		// Remove internal keys if not raw mode
 		if options == nil || !options.Raw {
 			parsedItem = eh.removeInternalKeys(parsedItem)
+			// Remove padding
+			parsedItem = RemovePadding(parsedItem, eh.entity.schema)
 			// Apply Get transformations and filter hidden attributes
 			parsedItem = validator.TransformForRead(parsedItem)
 		}
@@ -368,6 +378,8 @@ func (eh *ExecutionHelper) ExecuteScan(ctx context.Context, options *QueryOption
 		// Remove internal keys if not raw mode
 		if options == nil || !options.Raw {
 			parsedItem = eh.removeInternalKeys(parsedItem)
+			// Remove padding
+			parsedItem = RemovePadding(parsedItem, eh.entity.schema)
 			// Apply Get transformations and filter hidden attributes
 			parsedItem = validator.TransformForRead(parsedItem)
 		}

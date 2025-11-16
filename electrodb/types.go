@@ -83,12 +83,19 @@ type Schema struct {
 	Attributes map[string]*AttributeDefinition
 	Indexes    map[string]*IndexDefinition
 	Filters    map[string]FilterFunc
-	TTL        *TTLConfig // Time-To-Live configuration
+	TTL        *TTLConfig         // Time-To-Live configuration
+	Timestamps *TimestampsConfig  // Automatic timestamp management
 }
 
 // TTLConfig configures TTL (Time-To-Live) for automatic item expiration
 type TTLConfig struct {
 	Attribute string // Name of the attribute that stores the TTL timestamp (Unix epoch in seconds)
+}
+
+// TimestampsConfig configures automatic timestamp management
+type TimestampsConfig struct {
+	CreatedAt string // Attribute name for creation timestamp (set on Put/Create)
+	UpdatedAt string // Attribute name for update timestamp (set on Put/Create/Update)
 }
 
 // FilterFunc is a custom filter function
