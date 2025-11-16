@@ -122,6 +122,10 @@ func (eh *ExecutionHelper) ExecuteUpdateItem(
 	addOps map[string]interface{},
 	delOps map[string]interface{},
 	remOps []string,
+	appendOps map[string]interface{},
+	prependOps map[string]interface{},
+	subtractOps map[string]interface{},
+	dataOps map[string]interface{},
 	options *UpdateOptions,
 ) (*UpdateResponse, error) {
 	if eh.entity.client == nil {
@@ -129,7 +133,7 @@ func (eh *ExecutionHelper) ExecuteUpdateItem(
 	}
 
 	builder := NewParamsBuilder(eh.entity)
-	params, err := builder.BuildUpdateItemParams(keys, setOps, addOps, delOps, remOps, options)
+	params, err := builder.BuildUpdateItemParams(keys, setOps, addOps, delOps, remOps, appendOps, prependOps, subtractOps, dataOps, options)
 	if err != nil {
 		return nil, err
 	}

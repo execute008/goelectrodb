@@ -295,6 +295,10 @@ type TransactUpdateItem struct {
 	addOps           map[string]interface{}
 	delOps           map[string]interface{}
 	remOps           []string
+	appendOps        map[string]interface{}
+	prependOps       map[string]interface{}
+	subtractOps      map[string]interface{}
+	dataOps          map[string]interface{}
 	conditionBuilder *ConditionBuilder
 }
 
@@ -307,6 +311,10 @@ func (u *UpdateOperation) Commit() TransactionItem {
 		addOps:           u.addOps,
 		delOps:           u.delOps,
 		remOps:           u.remOps,
+		appendOps:        u.appendOps,
+		prependOps:       u.prependOps,
+		subtractOps:      u.subtractOps,
+		dataOps:          u.dataOps,
 		conditionBuilder: u.conditionBuilder,
 	}
 }
@@ -314,7 +322,7 @@ func (u *UpdateOperation) Commit() TransactionItem {
 // BuildTransactItem builds the transaction write item
 func (tui *TransactUpdateItem) BuildTransactItem() (types.TransactWriteItem, error) {
 	builder := NewParamsBuilder(tui.entity)
-	params, err := builder.BuildUpdateItemParams(tui.keys, tui.setOps, tui.addOps, tui.delOps, tui.remOps, nil)
+	params, err := builder.BuildUpdateItemParams(tui.keys, tui.setOps, tui.addOps, tui.delOps, tui.remOps, tui.appendOps, tui.prependOps, tui.subtractOps, tui.dataOps, nil)
 	if err != nil {
 		return types.TransactWriteItem{}, err
 	}

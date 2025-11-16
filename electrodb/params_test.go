@@ -207,8 +207,12 @@ func TestBuildUpdateItemParams(t *testing.T) {
 	}
 	delOps := make(map[string]interface{})
 	remOps := []string{"tags"}
+	appendOps := make(map[string]interface{})
+	prependOps := make(map[string]interface{})
+	subtractOps := make(map[string]interface{})
+	dataOps := make(map[string]interface{})
 
-	params, err := builder.BuildUpdateItemParams(keys, setOps, addOps, delOps, remOps, nil)
+	params, err := builder.BuildUpdateItemParams(keys, setOps, addOps, delOps, remOps, appendOps, prependOps, subtractOps, dataOps, nil)
 	if err != nil {
 		t.Fatalf("Failed to build params: %v", err)
 	}

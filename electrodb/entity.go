@@ -135,13 +135,17 @@ func (e *Entity) Upsert(item Item) *PutOperation {
 // Update updates an existing item
 func (e *Entity) Update(keys Keys) *UpdateOperation {
 	return &UpdateOperation{
-		entity:  e,
-		keys:    keys,
-		setOps:  make(map[string]interface{}),
-		addOps:  make(map[string]interface{}),
-		delOps:  make(map[string]interface{}),
-		remOps:  []string{},
-		ctx:     context.Background(),
+		entity:      e,
+		keys:        keys,
+		setOps:      make(map[string]interface{}),
+		addOps:      make(map[string]interface{}),
+		delOps:      make(map[string]interface{}),
+		remOps:      []string{},
+		appendOps:   make(map[string]interface{}),
+		prependOps:  make(map[string]interface{}),
+		subtractOps: make(map[string]interface{}),
+		dataOps:     make(map[string]interface{}),
+		ctx:         context.Background(),
 	}
 }
 
@@ -250,6 +254,10 @@ type UpdateOperation struct {
 	addOps           map[string]interface{}
 	delOps           map[string]interface{}
 	remOps           []string
+	appendOps        map[string]interface{}
+	prependOps       map[string]interface{}
+	subtractOps      map[string]interface{}
+	dataOps          map[string]interface{} // For removing specific values from lists/maps
 	options          *UpdateOptions
 	ctx              context.Context
 	conditionBuilder *ConditionBuilder
@@ -292,6 +300,42 @@ func (u *UpdateOperation) Remove(attributes []string) *UpdateOperation {
 	return u
 }
 
+// Append appends values to a list attribute
+// Uses DynamoDB's list_append function
+func (u *UpdateOperation) Append(updates map[string]interface{}) *UpdateOperation {
+	for key, value := range updates {
+		u.appendOps[key] = value
+	}
+	return u
+}
+
+// Prepend prepends values to a list attribute
+// Uses DynamoDB's list_append function with reversed order
+func (u *UpdateOperation) Prepend(updates map[string]interface{}) *UpdateOperation {
+	for key, value := range updates {
+		u.prependOps[key] = value
+	}
+	return u
+}
+
+// Subtract subtracts a value from a number attribute
+// This is the opposite of Add
+func (u *UpdateOperation) Subtract(updates map[string]interface{}) *UpdateOperation {
+	for key, value := range updates {
+		u.subtractOps[key] = value
+	}
+	return u
+}
+
+// Data removes specific elements from a list by index
+// In DynamoDB, this uses REMOVE with list indices
+func (u *UpdateOperation) Data(updates map[string]interface{}) *UpdateOperation {
+	for key, value := range updates {
+		u.dataOps[key] = value
+	}
+	return u
+}
+
 // Condition adds a condition expression to the update operation
 func (u *UpdateOperation) Condition(callback WhereCallback) *UpdateOperation {
 	cb := NewConditionBuilder(u.entity.schema.Attributes)
@@ -303,13 +347,13 @@ func (u *UpdateOperation) Condition(callback WhereCallback) *UpdateOperation {
 // Go executes the update operation
 func (u *UpdateOperation) Go() (*UpdateResponse, error) {
 	executor := NewExecutionHelper(u.entity)
-	return executor.ExecuteUpdateItem(u.ctx, u.keys, u.setOps, u.addOps, u.delOps, u.remOps, u.options)
+	return executor.ExecuteUpdateItem(u.ctx, u.keys, u.setOps, u.addOps, u.delOps, u.remOps, u.appendOps, u.prependOps, u.subtractOps, u.dataOps, u.options)
 }
 
 // Params returns the DynamoDB parameters without executing
 func (u *UpdateOperation) Params() (map[string]interface{}, error) {
 	builder := NewParamsBuilder(u.entity)
-	return builder.BuildUpdateItemParams(u.keys, u.setOps, u.addOps, u.delOps, u.remOps, u.options)
+	return builder.BuildUpdateItemParams(u.keys, u.setOps, u.addOps, u.delOps, u.remOps, u.appendOps, u.prependOps, u.subtractOps, u.dataOps, u.options)
 }
 
 // DeleteOperation represents a delete operation

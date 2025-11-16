@@ -131,6 +131,10 @@ func (pb *ParamsBuilder) BuildUpdateItemParams(
 	addOps map[string]interface{},
 	delOps map[string]interface{},
 	remOps []string,
+	appendOps map[string]interface{},
+	prependOps map[string]interface{},
+	subtractOps map[string]interface{},
+	dataOps map[string]interface{},
 	options *UpdateOptions,
 ) (map[string]interface{}, error) {
 	// Build key first
@@ -253,6 +257,111 @@ func (pb *ParamsBuilder) BuildUpdateItemParams(
 
 			updateExpr += attrName
 			exprAttrNames[attrName] = attr
+		}
+	}
+
+	// Handle APPEND operations (using list_append in SET clause)
+	if len(appendOps) > 0 {
+		for attr, value := range appendOps {
+			if updateExpr == "" {
+				updateExpr = "SET "
+			} else if !contains(updateExpr, "SET") {
+				updateExpr += " SET "
+			} else {
+				updateExpr += ", "
+			}
+
+			attrName := fmt.Sprintf("#attr%d", valueCounter)
+			valueName := fmt.Sprintf(":val%d", valueCounter)
+			valueCounter++
+
+			// list_append(attribute, :value) appends to the end
+			updateExpr += fmt.Sprintf("%s = list_append(%s, %s)", attrName, attrName, valueName)
+			exprAttrNames[attrName] = attr
+
+			av, err := attributevalue.Marshal(value)
+			if err != nil {
+				return nil, NewElectroError("MarshalError", "Failed to marshal value", err)
+			}
+			exprAttrValues[valueName] = av
+		}
+	}
+
+	// Handle PREPEND operations (using list_append in SET clause with reversed order)
+	if len(prependOps) > 0 {
+		for attr, value := range prependOps {
+			if updateExpr == "" {
+				updateExpr = "SET "
+			} else if !contains(updateExpr, "SET") {
+				updateExpr += " SET "
+			} else {
+				updateExpr += ", "
+			}
+
+			attrName := fmt.Sprintf("#attr%d", valueCounter)
+			valueName := fmt.Sprintf(":val%d", valueCounter)
+			valueCounter++
+
+			// list_append(:value, attribute) prepends to the beginning
+			updateExpr += fmt.Sprintf("%s = list_append(%s, %s)", attrName, valueName, attrName)
+			exprAttrNames[attrName] = attr
+
+			av, err := attributevalue.Marshal(value)
+			if err != nil {
+				return nil, NewElectroError("MarshalError", "Failed to marshal value", err)
+			}
+			exprAttrValues[valueName] = av
+		}
+	}
+
+	// Handle SUBTRACT operations (using subtraction in SET clause)
+	if len(subtractOps) > 0 {
+		for attr, value := range subtractOps {
+			if updateExpr == "" {
+				updateExpr = "SET "
+			} else if !contains(updateExpr, "SET") {
+				updateExpr += " SET "
+			} else {
+				updateExpr += ", "
+			}
+
+			attrName := fmt.Sprintf("#attr%d", valueCounter)
+			valueName := fmt.Sprintf(":val%d", valueCounter)
+			valueCounter++
+
+			// attribute = attribute - :value
+			updateExpr += fmt.Sprintf("%s = %s - %s", attrName, attrName, valueName)
+			exprAttrNames[attrName] = attr
+
+			av, err := attributevalue.Marshal(value)
+			if err != nil {
+				return nil, NewElectroError("MarshalError", "Failed to marshal value", err)
+			}
+			exprAttrValues[valueName] = av
+		}
+	}
+
+	// Handle DATA operations (for removing specific list indices)
+	// This uses REMOVE with indexed paths like attribute[0], attribute[1]
+	if len(dataOps) > 0 {
+		for attr, indices := range dataOps {
+			if indexList, ok := indices.([]int); ok {
+				for _, index := range indexList {
+					if updateExpr != "" && !contains(updateExpr, "REMOVE") {
+						updateExpr += " REMOVE "
+					} else if contains(updateExpr, "REMOVE") {
+						updateExpr += ", "
+					} else {
+						updateExpr = "REMOVE "
+					}
+
+					attrName := fmt.Sprintf("#attr%d", valueCounter)
+					valueCounter++
+
+					updateExpr += fmt.Sprintf("%s[%d]", attrName, index)
+					exprAttrNames[attrName] = attr
+				}
+			}
 		}
 	}
 
@@ -509,4 +618,18 @@ func (pb *ParamsBuilder) addKeysToItem(item Item) (Item, error) {
 	}
 
 	return result, nil
+}
+
+// contains checks if a string contains a substring
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && findSubstring(s, substr))
+}
+
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
