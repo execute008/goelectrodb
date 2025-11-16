@@ -1,6 +1,8 @@
 package electrodb
 
-import "context"
+import (
+	"context"
+)
 
 // QueryBuilder is an interface for building queries
 type QueryBuilder interface {
@@ -17,6 +19,7 @@ type QueryChain struct {
 	skCondition   *sortKeyCondition
 	filters       []string
 	options       *QueryOptions
+	filterBuilder *FilterBuilder
 }
 
 type sortKeyCondition struct {
@@ -112,8 +115,10 @@ func (qc *QueryChain) Begins(value interface{}) *QueryChain {
 }
 
 // Where adds a custom filter expression
-func (qc *QueryChain) Where(filterFn func(AttributeOperations) string) *QueryChain {
-	// TODO: Implement filter function execution
+func (qc *QueryChain) Where(callback WhereCallback) *QueryChain {
+	fb := NewFilterBuilder(qc.entity.schema.Attributes)
+	fb.Where(callback)
+	qc.filterBuilder = fb
 	return qc
 }
 
@@ -132,11 +137,11 @@ func (qc *QueryChain) Options(opts *QueryOptions) *QueryChain {
 // Go executes the query
 func (qc *QueryChain) Go() (*QueryResponse, error) {
 	executor := NewExecutionHelper(qc.entity)
-	return executor.ExecuteQuery(context.Background(), qc.accessPattern, qc.pkFacets, qc.skCondition, qc.options)
+	return executor.ExecuteQuery(context.Background(), qc.accessPattern, qc.pkFacets, qc.skCondition, qc.options, qc.filterBuilder)
 }
 
 // Params returns the DynamoDB parameters without executing
 func (qc *QueryChain) Params() (map[string]interface{}, error) {
 	builder := NewParamsBuilder(qc.entity)
-	return builder.BuildQueryParams(qc.accessPattern, qc.pkFacets, qc.skCondition, qc.options)
+	return builder.BuildQueryParams(qc.accessPattern, qc.pkFacets, qc.skCondition, qc.options, qc.filterBuilder)
 }

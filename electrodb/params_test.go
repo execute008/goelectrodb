@@ -311,7 +311,7 @@ func TestBuildQueryParams(t *testing.T) {
 
 	pkFacets := []interface{}{"EastPointe"}
 
-	params, err := builder.BuildQueryParams("units", pkFacets, nil, nil)
+	params, err := builder.BuildQueryParams("units", pkFacets, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to build params: %v", err)
 	}
@@ -366,7 +366,7 @@ func TestBuildQueryParamsWithSortKey(t *testing.T) {
 		values:    []interface{}{"Building"},
 	}
 
-	params, err := builder.BuildQueryParams("units", pkFacets, skCondition, nil)
+	params, err := builder.BuildQueryParams("units", pkFacets, skCondition, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to build params: %v", err)
 	}

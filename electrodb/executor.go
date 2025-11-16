@@ -212,13 +212,14 @@ func (eh *ExecutionHelper) ExecuteQuery(
 	pkFacets []interface{},
 	skCondition *sortKeyCondition,
 	options *QueryOptions,
+	filterBuilder *FilterBuilder,
 ) (*QueryResponse, error) {
 	if eh.entity.client == nil {
 		return nil, NewElectroError("NoClientProvided", "No DynamoDB client was provided to the entity", nil)
 	}
 
 	builder := NewParamsBuilder(eh.entity)
-	params, err := builder.BuildQueryParams(indexName, pkFacets, skCondition, options)
+	params, err := builder.BuildQueryParams(indexName, pkFacets, skCondition, options, filterBuilder)
 	if err != nil {
 		return nil, err
 	}
@@ -232,6 +233,14 @@ func (eh *ExecutionHelper) ExecuteQuery(
 
 	if indexName, ok := params["IndexName"].(string); ok {
 		input.IndexName = &indexName
+	}
+
+	if filterExpr, ok := params["FilterExpression"].(string); ok {
+		input.FilterExpression = &filterExpr
+	}
+
+	if exprAttrNames, ok := params["ExpressionAttributeNames"].(map[string]string); ok {
+		input.ExpressionAttributeNames = exprAttrNames
 	}
 
 	if options != nil {

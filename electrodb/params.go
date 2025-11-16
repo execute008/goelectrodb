@@ -255,6 +255,7 @@ func (pb *ParamsBuilder) BuildQueryParams(
 	pkFacets []interface{},
 	skCondition *sortKeyCondition,
 	options *QueryOptions,
+	filterBuilder *FilterBuilder,
 ) (map[string]interface{}, error) {
 	index, exists := pb.entity.schema.Indexes[indexName]
 	if !exists {
@@ -348,6 +349,34 @@ func (pb *ParamsBuilder) BuildQueryParams(
 		}
 		if options.Order != nil && *options.Order == "desc" {
 			params["ScanIndexForward"] = false
+		}
+	}
+
+	// Add filter expression if provided
+	if filterBuilder != nil {
+		filterExpr, filterNames, filterValues := filterBuilder.Build()
+		if filterExpr != "" {
+			params["FilterExpression"] = filterExpr
+
+			// Merge expression attribute names and values
+			existingNames := make(map[string]string)
+			if params["ExpressionAttributeNames"] != nil {
+				existingNames = params["ExpressionAttributeNames"].(map[string]string)
+			}
+
+			existingValues := params["ExpressionAttributeValues"].(map[string]types.AttributeValue)
+
+			mergedNames, mergedValues := MergeExpressionAttributes(
+				existingNames,
+				existingValues,
+				filterNames,
+				filterValues,
+			)
+
+			if len(mergedNames) > 0 {
+				params["ExpressionAttributeNames"] = mergedNames
+			}
+			params["ExpressionAttributeValues"] = mergedValues
 		}
 	}
 
