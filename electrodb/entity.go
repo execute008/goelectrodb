@@ -190,10 +190,19 @@ func (g *GetOperation) Params() (map[string]interface{}, error) {
 
 // PutOperation represents a put operation
 type PutOperation struct {
-	entity  *Entity
-	item    Item
-	options *PutOptions
-	ctx     context.Context
+	entity           *Entity
+	item             Item
+	options          *PutOptions
+	ctx              context.Context
+	conditionBuilder *ConditionBuilder
+}
+
+// Condition adds a condition expression to the put operation
+func (p *PutOperation) Condition(callback WhereCallback) *PutOperation {
+	cb := NewConditionBuilder(p.entity.schema.Attributes)
+	cb.Where(callback)
+	p.conditionBuilder = cb
+	return p
 }
 
 // Go executes the put operation
@@ -210,14 +219,15 @@ func (p *PutOperation) Params() (map[string]interface{}, error) {
 
 // UpdateOperation represents an update operation
 type UpdateOperation struct {
-	entity  *Entity
-	keys    Keys
-	setOps  map[string]interface{}
-	addOps  map[string]interface{}
-	delOps  map[string]interface{}
-	remOps  []string
-	options *UpdateOptions
-	ctx     context.Context
+	entity           *Entity
+	keys             Keys
+	setOps           map[string]interface{}
+	addOps           map[string]interface{}
+	delOps           map[string]interface{}
+	remOps           []string
+	options          *UpdateOptions
+	ctx              context.Context
+	conditionBuilder *ConditionBuilder
 }
 
 // Set sets an attribute value
@@ -242,6 +252,14 @@ func (u *UpdateOperation) Remove(attributes []string) *UpdateOperation {
 	return u
 }
 
+// Condition adds a condition expression to the update operation
+func (u *UpdateOperation) Condition(callback WhereCallback) *UpdateOperation {
+	cb := NewConditionBuilder(u.entity.schema.Attributes)
+	cb.Where(callback)
+	u.conditionBuilder = cb
+	return u
+}
+
 // Go executes the update operation
 func (u *UpdateOperation) Go() (*UpdateResponse, error) {
 	executor := NewExecutionHelper(u.entity)
@@ -256,10 +274,19 @@ func (u *UpdateOperation) Params() (map[string]interface{}, error) {
 
 // DeleteOperation represents a delete operation
 type DeleteOperation struct {
-	entity  *Entity
-	keys    Keys
-	options *DeleteOptions
-	ctx     context.Context
+	entity           *Entity
+	keys             Keys
+	options          *DeleteOptions
+	ctx              context.Context
+	conditionBuilder *ConditionBuilder
+}
+
+// Condition adds a condition expression to the delete operation
+func (d *DeleteOperation) Condition(callback WhereCallback) *DeleteOperation {
+	cb := NewConditionBuilder(d.entity.schema.Attributes)
+	cb.Where(callback)
+	d.conditionBuilder = cb
+	return d
 }
 
 // Go executes the delete operation

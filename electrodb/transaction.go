@@ -228,15 +228,17 @@ func (tgb *TransactGetBuilder) Params() (map[string]interface{}, error) {
 
 // TransactPutItem wraps a put operation for transactions
 type TransactPutItem struct {
-	entity *Entity
-	item   Item
+	entity           *Entity
+	item             Item
+	conditionBuilder *ConditionBuilder
 }
 
 // Commit prepares a put operation for a transaction
 func (p *PutOperation) Commit() TransactionItem {
 	return &TransactPutItem{
-		entity: p.entity,
-		item:   p.item,
+		entity:           p.entity,
+		item:             p.item,
+		conditionBuilder: p.conditionBuilder,
 	}
 }
 
@@ -253,11 +255,29 @@ func (tpi *TransactPutItem) BuildTransactItem() (types.TransactWriteItem, error)
 		tableName = &tpi.entity.schema.Table
 	}
 
+	put := &types.Put{
+		TableName: tableName,
+		Item:      params["Item"].(map[string]types.AttributeValue),
+	}
+
+	// Add condition expression if provided
+	if tpi.conditionBuilder != nil {
+		condExpr, condNames, condValues := tpi.conditionBuilder.Build()
+		if condExpr != "" {
+			put.ConditionExpression = &condExpr
+
+			if len(condNames) > 0 {
+				put.ExpressionAttributeNames = condNames
+			}
+
+			if len(condValues) > 0 {
+				put.ExpressionAttributeValues = condValues
+			}
+		}
+	}
+
 	return types.TransactWriteItem{
-		Put: &types.Put{
-			TableName: tableName,
-			Item:      params["Item"].(map[string]types.AttributeValue),
-		},
+		Put: put,
 	}, nil
 }
 
@@ -269,21 +289,23 @@ func (tpi *TransactPutItem) BuildTransactGetItem() (types.TransactGetItem, error
 
 // TransactUpdateItem wraps an update operation for transactions
 type TransactUpdateItem struct {
-	entity  *Entity
-	keys    Keys
-	setOps  map[string]interface{}
-	addOps  map[string]interface{}
-	remOps  []string
+	entity           *Entity
+	keys             Keys
+	setOps           map[string]interface{}
+	addOps           map[string]interface{}
+	remOps           []string
+	conditionBuilder *ConditionBuilder
 }
 
 // Commit prepares an update operation for a transaction
 func (u *UpdateOperation) Commit() TransactionItem {
 	return &TransactUpdateItem{
-		entity: u.entity,
-		keys:   u.keys,
-		setOps: u.setOps,
-		addOps: u.addOps,
-		remOps: u.remOps,
+		entity:           u.entity,
+		keys:             u.keys,
+		setOps:           u.setOps,
+		addOps:           u.addOps,
+		remOps:           u.remOps,
+		conditionBuilder: u.conditionBuilder,
 	}
 }
 
@@ -300,14 +322,34 @@ func (tui *TransactUpdateItem) BuildTransactItem() (types.TransactWriteItem, err
 		tableName = &tui.entity.schema.Table
 	}
 
+	update := &types.Update{
+		TableName:                 tableName,
+		Key:                       params["Key"].(map[string]types.AttributeValue),
+		UpdateExpression:          stringPtr(params["UpdateExpression"].(string)),
+		ExpressionAttributeNames:  params["ExpressionAttributeNames"].(map[string]string),
+		ExpressionAttributeValues: params["ExpressionAttributeValues"].(map[string]types.AttributeValue),
+	}
+
+	// Add condition expression if provided
+	if tui.conditionBuilder != nil {
+		condExpr, condNames, condValues := tui.conditionBuilder.Build()
+		if condExpr != "" {
+			update.ConditionExpression = &condExpr
+
+			// Merge expression attribute names and values
+			mergedNames, mergedValues := MergeExpressionAttributes(
+				update.ExpressionAttributeNames,
+				update.ExpressionAttributeValues,
+				condNames,
+				condValues,
+			)
+			update.ExpressionAttributeNames = mergedNames
+			update.ExpressionAttributeValues = mergedValues
+		}
+	}
+
 	return types.TransactWriteItem{
-		Update: &types.Update{
-			TableName:                 tableName,
-			Key:                       params["Key"].(map[string]types.AttributeValue),
-			UpdateExpression:          stringPtr(params["UpdateExpression"].(string)),
-			ExpressionAttributeNames:  params["ExpressionAttributeNames"].(map[string]string),
-			ExpressionAttributeValues: params["ExpressionAttributeValues"].(map[string]types.AttributeValue),
-		},
+		Update: update,
 	}, nil
 }
 
@@ -319,15 +361,17 @@ func (tui *TransactUpdateItem) BuildTransactGetItem() (types.TransactGetItem, er
 
 // TransactDeleteItem wraps a delete operation for transactions
 type TransactDeleteItem struct {
-	entity *Entity
-	keys   Keys
+	entity           *Entity
+	keys             Keys
+	conditionBuilder *ConditionBuilder
 }
 
 // Commit prepares a delete operation for a transaction
 func (d *DeleteOperation) Commit() TransactionItem {
 	return &TransactDeleteItem{
-		entity: d.entity,
-		keys:   d.keys,
+		entity:           d.entity,
+		keys:             d.keys,
+		conditionBuilder: d.conditionBuilder,
 	}
 }
 
@@ -344,11 +388,29 @@ func (tdi *TransactDeleteItem) BuildTransactItem() (types.TransactWriteItem, err
 		tableName = &tdi.entity.schema.Table
 	}
 
+	del := &types.Delete{
+		TableName: tableName,
+		Key:       params["Key"].(map[string]types.AttributeValue),
+	}
+
+	// Add condition expression if provided
+	if tdi.conditionBuilder != nil {
+		condExpr, condNames, condValues := tdi.conditionBuilder.Build()
+		if condExpr != "" {
+			del.ConditionExpression = &condExpr
+
+			if len(condNames) > 0 {
+				del.ExpressionAttributeNames = condNames
+			}
+
+			if len(condValues) > 0 {
+				del.ExpressionAttributeValues = condValues
+			}
+		}
+	}
+
 	return types.TransactWriteItem{
-		Delete: &types.Delete{
-			TableName: tableName,
-			Key:       params["Key"].(map[string]types.AttributeValue),
-		},
+		Delete: del,
 	}, nil
 }
 
