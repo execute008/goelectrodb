@@ -113,3 +113,5 @@ test/debug.ts
 
 # Go compiled binaries
 examples/go/basic/basic
+examples/comprehensive/comprehensive
+examples/quickstart/quickstart
