@@ -1,8 +1,0 @@
-.row-centered {
-  /* container width */
-  width: 100%;
-  /* container alignment */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
