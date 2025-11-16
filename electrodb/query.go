@@ -118,13 +118,84 @@ func (qc *QueryChain) Begins(value interface{}) *QueryChain {
 func (qc *QueryChain) Where(callback WhereCallback) *QueryChain {
 	fb := NewFilterBuilder(qc.entity.schema.Attributes)
 	fb.Where(callback)
-	qc.filterBuilder = fb
+
+	// Merge with existing filter builder if present
+	if qc.filterBuilder != nil {
+		// Combine expressions with AND
+		existingExpr, existingNames, existingValues := qc.filterBuilder.Build()
+		newExpr, newNames, newValues := fb.Build()
+
+		combined := NewFilterBuilder(qc.entity.schema.Attributes)
+		combined.builder.expression = existingExpr + " AND " + newExpr
+
+		// Merge names and values
+		mergedNames, mergedValues := MergeExpressionAttributes(
+			existingNames,
+			existingValues,
+			newNames,
+			newValues,
+		)
+		combined.builder.names = mergedNames
+		combined.builder.values = mergedValues
+
+		qc.filterBuilder = combined
+	} else {
+		qc.filterBuilder = fb
+	}
+
 	return qc
 }
 
 // Filter adds a filter using a named filter from schema
 func (qc *QueryChain) Filter(filterName string, params map[string]interface{}) *QueryChain {
-	// TODO: Implement named filter execution
+	// Look up the named filter in the schema
+	if qc.entity.schema.Filters == nil {
+		return qc
+	}
+
+	filterFunc, exists := qc.entity.schema.Filters[filterName]
+	if !exists {
+		return qc
+	}
+
+	// Create a filter builder and execute the named filter
+	fb := NewFilterBuilder(qc.entity.schema.Attributes)
+	fb.Where(func(attrs map[string]*AttributeRef, ops *OperationBuilder) string {
+		// Convert AttributeRef map to AttributeOperations for the filter function
+		attrOps := make(AttributeOperations)
+		for name, ref := range attrs {
+			attrOps[name] = &AttributeOperator{
+				name:    name,
+				builder: ref.builder,
+			}
+		}
+		return filterFunc(attrOps, params)
+	})
+
+	// Merge with existing filter builder if present
+	if qc.filterBuilder != nil {
+		// Combine expressions with AND
+		existingExpr, existingNames, existingValues := qc.filterBuilder.Build()
+		newExpr, newNames, newValues := fb.Build()
+
+		combined := NewFilterBuilder(qc.entity.schema.Attributes)
+		combined.builder.expression = existingExpr + " AND " + newExpr
+
+		// Merge names and values
+		mergedNames, mergedValues := MergeExpressionAttributes(
+			existingNames,
+			existingValues,
+			newNames,
+			newValues,
+		)
+		combined.builder.names = mergedNames
+		combined.builder.values = mergedValues
+
+		qc.filterBuilder = combined
+	} else {
+		qc.filterBuilder = fb
+	}
+
 	return qc
 }
 

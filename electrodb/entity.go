@@ -111,8 +111,25 @@ func (e *Entity) Create(item Item) *PutOperation {
 		item:   item,
 		ctx:    context.Background(),
 	}
-	// TODO: Add condition to prevent overwrite
+
+	// Add condition to prevent overwrite - only create if primary key doesn't exist
+	// Find the primary key field from the primary index
+	primaryIndex, exists := e.schema.Indexes["primary"]
+	if exists && len(primaryIndex.PK.Facets) > 0 {
+		// Use the first facet as the primary key attribute for the condition
+		pkAttr := primaryIndex.PK.Facets[0]
+		op.Condition(func(attrs map[string]*AttributeRef, ops *OperationBuilder) string {
+			return ops.NotExists(attrs[pkAttr])
+		})
+	}
+
 	return op
+}
+
+// Upsert creates a new item or updates an existing one
+// This is an alias for Put, which naturally upserts in DynamoDB
+func (e *Entity) Upsert(item Item) *PutOperation {
+	return e.Put(item)
 }
 
 // Update updates an existing item
@@ -130,6 +147,14 @@ func (e *Entity) Update(keys Keys) *UpdateOperation {
 
 // Patch partially updates an item
 func (e *Entity) Patch(keys Keys) *UpdateOperation {
+	return e.Update(keys)
+}
+
+// Upsert creates or updates an item using UpdateItem
+// Unlike Upsert(), which uses Put, this uses Update which allows partial updates
+// This will create the item if it doesn't exist, or update specific attributes if it does
+func (e *Entity) UpsertUpdate(keys Keys) *UpdateOperation {
+	// UpdateItem in DynamoDB naturally upserts - it creates if doesn't exist
 	return e.Update(keys)
 }
 

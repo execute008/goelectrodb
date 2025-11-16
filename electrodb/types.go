@@ -93,22 +93,72 @@ type AttributeOperations map[string]*AttributeOperator
 
 // AttributeOperator provides comparison operations for an attribute
 type AttributeOperator struct {
-	name string
+	name    string
+	builder *ExpressionBuilder
 }
 
 // Eq generates an equals filter expression
 func (a *AttributeOperator) Eq(value interface{}) string {
-	return ""
+	nameRef := a.builder.addName(a.name)
+	valueRef, _ := a.builder.addValue(value)
+	return nameRef + " = " + valueRef
+}
+
+// Ne generates a not-equals filter expression
+func (a *AttributeOperator) Ne(value interface{}) string {
+	nameRef := a.builder.addName(a.name)
+	valueRef, _ := a.builder.addValue(value)
+	return nameRef + " <> " + valueRef
+}
+
+// Gt generates a greater-than filter expression
+func (a *AttributeOperator) Gt(value interface{}) string {
+	nameRef := a.builder.addName(a.name)
+	valueRef, _ := a.builder.addValue(value)
+	return nameRef + " > " + valueRef
 }
 
 // Gte generates a greater-than-or-equal filter expression
 func (a *AttributeOperator) Gte(value interface{}) string {
-	return ""
+	nameRef := a.builder.addName(a.name)
+	valueRef, _ := a.builder.addValue(value)
+	return nameRef + " >= " + valueRef
 }
 
-// Between generates a between filter expression
-func (a *AttributeOperator) Between(start, end interface{}) string {
-	return ""
+// Lt generates a less-than filter expression
+func (a *AttributeOperator) Lt(value interface{}) string {
+	nameRef := a.builder.addName(a.name)
+	valueRef, _ := a.builder.addValue(value)
+	return nameRef + " < " + valueRef
+}
+
+// Lte generates a less-than-or-equal filter expression
+func (a *AttributeOperator) Lte(value interface{}) string {
+	nameRef := a.builder.addName(a.name)
+	valueRef, _ := a.builder.addValue(value)
+	return nameRef + " <= " + valueRef
+}
+
+// Between generates a BETWEEN filter expression
+func (a *AttributeOperator) Between(low, high interface{}) string {
+	nameRef := a.builder.addName(a.name)
+	lowRef, _ := a.builder.addValue(low)
+	highRef, _ := a.builder.addValue(high)
+	return nameRef + " BETWEEN " + lowRef + " AND " + highRef
+}
+
+// Begins generates a begins_with filter expression
+func (a *AttributeOperator) Begins(value interface{}) string {
+	nameRef := a.builder.addName(a.name)
+	valueRef, _ := a.builder.addValue(value)
+	return "begins_with(" + nameRef + ", " + valueRef + ")"
+}
+
+// Contains generates a contains filter expression
+func (a *AttributeOperator) Contains(value interface{}) string {
+	nameRef := a.builder.addName(a.name)
+	valueRef, _ := a.builder.addValue(value)
+	return "contains(" + nameRef + ", " + valueRef + ")"
 }
 
 // Config holds entity configuration
