@@ -1,5 +1,7 @@
 package electrodb
 
+import "context"
+
 // QueryBuilder is an interface for building queries
 type QueryBuilder interface {
 	// Query starts a query with partition key facets
@@ -129,15 +131,8 @@ func (qc *QueryChain) Options(opts *QueryOptions) *QueryChain {
 
 // Go executes the query
 func (qc *QueryChain) Go() (*QueryResponse, error) {
-	if qc.entity.client == nil {
-		return nil, NewElectroError("NoClientProvided",
-			"No DynamoDB client was provided to the entity", nil)
-	}
-
-	// TODO: Implement actual DynamoDB query operation
-	return &QueryResponse{
-		Data: make([]map[string]interface{}, 0),
-	}, nil
+	executor := NewExecutionHelper(qc.entity)
+	return executor.ExecuteQuery(context.Background(), qc.accessPattern, qc.pkFacets, qc.skCondition, qc.options)
 }
 
 // Params returns the DynamoDB parameters without executing

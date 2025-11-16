@@ -427,8 +427,3 @@ func TestEntityDelete(t *testing.T) {
 		t.Fatal("Expected params to be non-nil")
 	}
 }
-
-// Helper function
-func stringPtr(s string) *string {
-	return &s
-}

@@ -178,15 +178,8 @@ type GetOperation struct {
 
 // Go executes the get operation
 func (g *GetOperation) Go() (*GetResponse, error) {
-	if g.entity.client == nil {
-		return nil, NewElectroError("NoClientProvided",
-			"No DynamoDB client was provided to the entity", nil)
-	}
-
-	// TODO: Implement actual DynamoDB get operation
-	return &GetResponse{
-		Data: make(map[string]interface{}),
-	}, nil
+	executor := NewExecutionHelper(g.entity)
+	return executor.ExecuteGetItem(g.ctx, g.keys, g.options)
 }
 
 // Params returns the DynamoDB parameters without executing
@@ -205,15 +198,8 @@ type PutOperation struct {
 
 // Go executes the put operation
 func (p *PutOperation) Go() (*PutResponse, error) {
-	if p.entity.client == nil {
-		return nil, NewElectroError("NoClientProvided",
-			"No DynamoDB client was provided to the entity", nil)
-	}
-
-	// TODO: Implement actual DynamoDB put operation
-	return &PutResponse{
-		Data: make(map[string]interface{}),
-	}, nil
+	executor := NewExecutionHelper(p.entity)
+	return executor.ExecutePutItem(p.ctx, p.item, p.options)
 }
 
 // Params returns the DynamoDB parameters without executing
@@ -258,15 +244,8 @@ func (u *UpdateOperation) Remove(attributes []string) *UpdateOperation {
 
 // Go executes the update operation
 func (u *UpdateOperation) Go() (*UpdateResponse, error) {
-	if u.entity.client == nil {
-		return nil, NewElectroError("NoClientProvided",
-			"No DynamoDB client was provided to the entity", nil)
-	}
-
-	// TODO: Implement actual DynamoDB update operation
-	return &UpdateResponse{
-		Data: make(map[string]interface{}),
-	}, nil
+	executor := NewExecutionHelper(u.entity)
+	return executor.ExecuteUpdateItem(u.ctx, u.keys, u.setOps, u.addOps, u.remOps, u.options)
 }
 
 // Params returns the DynamoDB parameters without executing
@@ -285,15 +264,8 @@ type DeleteOperation struct {
 
 // Go executes the delete operation
 func (d *DeleteOperation) Go() (*DeleteResponse, error) {
-	if d.entity.client == nil {
-		return nil, NewElectroError("NoClientProvided",
-			"No DynamoDB client was provided to the entity", nil)
-	}
-
-	// TODO: Implement actual DynamoDB delete operation
-	return &DeleteResponse{
-		Data: make(map[string]interface{}),
-	}, nil
+	executor := NewExecutionHelper(d.entity)
+	return executor.ExecuteDeleteItem(d.ctx, d.keys, d.options)
 }
 
 // Params returns the DynamoDB parameters without executing
@@ -311,15 +283,8 @@ type ScanOperation struct {
 
 // Go executes the scan operation
 func (s *ScanOperation) Go() (*ScanResponse, error) {
-	if s.entity.client == nil {
-		return nil, NewElectroError("NoClientProvided",
-			"No DynamoDB client was provided to the entity", nil)
-	}
-
-	// TODO: Implement actual DynamoDB scan operation
-	return &ScanResponse{
-		Data: make([]map[string]interface{}, 0),
-	}, nil
+	executor := NewExecutionHelper(s.entity)
+	return executor.ExecuteScan(s.ctx, s.options)
 }
 
 // Params returns the DynamoDB parameters without executing

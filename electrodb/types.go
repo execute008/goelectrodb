@@ -226,13 +226,16 @@ type ScanResponse struct {
 
 // BatchGetResponse represents a batch get response
 type BatchGetResponse struct {
-	Data         []map[string]interface{}
-	Unprocessed  []map[string]interface{}
+	Data        []map[string]interface{}
+	Unprocessed []Keys
 }
 
 // BatchWriteResponse represents a batch write response
 type BatchWriteResponse struct {
-	Unprocessed []map[string]interface{}
+	Unprocessed struct {
+		Puts    []Item
+		Deletes []Keys
+	}
 }
 
 // TransactionResponse represents a transaction response
