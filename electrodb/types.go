@@ -83,6 +83,12 @@ type Schema struct {
 	Attributes map[string]*AttributeDefinition
 	Indexes    map[string]*IndexDefinition
 	Filters    map[string]FilterFunc
+	TTL        *TTLConfig // Time-To-Live configuration
+}
+
+// TTLConfig configures TTL (Time-To-Live) for automatic item expiration
+type TTLConfig struct {
+	Attribute string // Name of the attribute that stores the TTL timestamp (Unix epoch in seconds)
 }
 
 // FilterFunc is a custom filter function

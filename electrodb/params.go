@@ -122,6 +122,7 @@ func (pb *ParamsBuilder) BuildUpdateItemParams(
 	keys Keys,
 	setOps map[string]interface{},
 	addOps map[string]interface{},
+	delOps map[string]interface{},
 	remOps []string,
 	options *UpdateOptions,
 ) (map[string]interface{}, error) {
@@ -170,6 +171,34 @@ func (pb *ParamsBuilder) BuildUpdateItemParams(
 		updateExpr += "ADD "
 		first := true
 		for attr, value := range addOps {
+			if !first {
+				updateExpr += ", "
+			}
+			first = false
+
+			attrName := fmt.Sprintf("#attr%d", valueCounter)
+			valueName := fmt.Sprintf(":val%d", valueCounter)
+			valueCounter++
+
+			updateExpr += fmt.Sprintf("%s %s", attrName, valueName)
+			exprAttrNames[attrName] = attr
+
+			av, err := attributevalue.Marshal(value)
+			if err != nil {
+				return nil, NewElectroError("MarshalError", "Failed to marshal value", err)
+			}
+			exprAttrValues[valueName] = av
+		}
+	}
+
+	// DELETE operations (for removing values from sets)
+	if len(delOps) > 0 {
+		if updateExpr != "" {
+			updateExpr += " "
+		}
+		updateExpr += "DELETE "
+		first := true
+		for attr, value := range delOps {
 			if !first {
 				updateExpr += ", "
 			}

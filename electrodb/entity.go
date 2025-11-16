@@ -271,7 +271,22 @@ func (u *UpdateOperation) Add(updates map[string]interface{}) *UpdateOperation {
 	return u
 }
 
-// Remove removes attributes
+// AddToSet adds values to a set attribute
+// This is a convenience method that wraps Add for clarity
+// Works with String Sets (SS), Number Sets (NS), and Binary Sets (BS)
+func (u *UpdateOperation) AddToSet(attribute string, values interface{}) *UpdateOperation {
+	u.addOps[attribute] = values
+	return u
+}
+
+// DeleteFromSet removes values from a set attribute
+// Works with String Sets (SS), Number Sets (NS), and Binary Sets (BS)
+func (u *UpdateOperation) DeleteFromSet(attribute string, values interface{}) *UpdateOperation {
+	u.delOps[attribute] = values
+	return u
+}
+
+// Remove removes attributes entirely
 func (u *UpdateOperation) Remove(attributes []string) *UpdateOperation {
 	u.remOps = append(u.remOps, attributes...)
 	return u
@@ -288,13 +303,13 @@ func (u *UpdateOperation) Condition(callback WhereCallback) *UpdateOperation {
 // Go executes the update operation
 func (u *UpdateOperation) Go() (*UpdateResponse, error) {
 	executor := NewExecutionHelper(u.entity)
-	return executor.ExecuteUpdateItem(u.ctx, u.keys, u.setOps, u.addOps, u.remOps, u.options)
+	return executor.ExecuteUpdateItem(u.ctx, u.keys, u.setOps, u.addOps, u.delOps, u.remOps, u.options)
 }
 
 // Params returns the DynamoDB parameters without executing
 func (u *UpdateOperation) Params() (map[string]interface{}, error) {
 	builder := NewParamsBuilder(u.entity)
-	return builder.BuildUpdateItemParams(u.keys, u.setOps, u.addOps, u.remOps, u.options)
+	return builder.BuildUpdateItemParams(u.keys, u.setOps, u.addOps, u.delOps, u.remOps, u.options)
 }
 
 // DeleteOperation represents a delete operation
