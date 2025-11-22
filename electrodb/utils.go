@@ -14,3 +14,11 @@ func int32Ptr(i int32) *int32 {
 func boolPtr(b bool) *bool {
 	return &b
 }
+
+// stringPtrOrEmpty returns the string value or empty string if nil
+func stringPtrOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}

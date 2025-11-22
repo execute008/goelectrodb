@@ -2,6 +2,7 @@ package electrodb
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -82,7 +83,23 @@ func (twb *TransactWriteBuilder) GoWithContext(ctx context.Context) (*TransactWr
 	_, err := twb.service.client.TransactWriteItems(ctx, input)
 	if err != nil {
 		// Check if it's a transaction canceled exception
-		// TODO: Parse cancellation reasons and return them
+		var canceledErr *types.TransactionCanceledException
+		if errors.As(err, &canceledErr) {
+			results := make([]TransactResult, len(twb.items))
+			for i, reason := range canceledErr.CancellationReasons {
+				if reason.Code != nil {
+					results[i] = TransactResult{
+						Rejected: true,
+						Code:     *reason.Code,
+						Message:  stringPtrOrEmpty(reason.Message),
+					}
+				}
+			}
+			return &TransactWriteResponse{
+				Canceled: true,
+				Data:     results,
+			}, NewElectroError("TransactionCanceled", "Transaction was canceled", err)
+		}
 		return nil, NewElectroError("TransactionError", "Transaction failed", err)
 	}
 

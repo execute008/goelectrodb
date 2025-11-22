@@ -400,6 +400,23 @@ func (s *ScanOperation) Go() (*ScanResponse, error) {
 
 // Params returns the DynamoDB parameters without executing
 func (s *ScanOperation) Params() (map[string]interface{}, error) {
-	// TODO: Build and return Scan parameters
-	return make(map[string]interface{}), nil
+	tableName := s.entity.config.Table
+	if tableName == nil {
+		tableName = &s.entity.schema.Table
+	}
+
+	params := map[string]interface{}{
+		"TableName": *tableName,
+	}
+
+	if s.options != nil {
+		if s.options.Limit != nil {
+			params["Limit"] = *s.options.Limit
+		}
+		if s.options.Cursor != nil {
+			params["ExclusiveStartKey"] = *s.options.Cursor
+		}
+	}
+
+	return params, nil
 }

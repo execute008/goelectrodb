@@ -11,7 +11,7 @@ import (
 
 func main() {
 	fmt.Println("ElectroDB Go - Quick Start Example")
-	fmt.Println("===================================\n")
+	fmt.Println("===================================")
 
 	// 1. Define a simple user schema
 	userSchema := &electrodb.Schema{
@@ -71,7 +71,7 @@ func main() {
 		log.Fatalf("Failed to create entity: %v", err)
 	}
 
-	fmt.Println("✅ Entity created successfully\n")
+	fmt.Println("✅ Entity created successfully")
 
 	// 3. Create (Put) a new user
 	fmt.Println("📝 Creating user...")

@@ -59,9 +59,9 @@ type PaddingConfig struct {
 
 // FacetDefinition defines partition or sort key facets
 type FacetDefinition struct {
-	Field   string
-	Facets  []string
-	Casing  *string // optional: "upper", "lower", "none", "default"
+	Field    string
+	Facets   []string
+	Casing   *string // optional: "upper", "lower", "none", "default"
 	Template *string
 }
 
@@ -83,8 +83,8 @@ type Schema struct {
 	Attributes map[string]*AttributeDefinition
 	Indexes    map[string]*IndexDefinition
 	Filters    map[string]FilterFunc
-	TTL        *TTLConfig         // Time-To-Live configuration
-	Timestamps *TimestampsConfig  // Automatic timestamp management
+	TTL        *TTLConfig        // Time-To-Live configuration
+	Timestamps *TimestampsConfig // Automatic timestamp management
 }
 
 // TTLConfig configures TTL (Time-To-Live) for automatic item expiration
@@ -218,13 +218,13 @@ type Logger interface {
 
 // QueryOptions defines options for query execution
 type QueryOptions struct {
-	Limit       *int32
-	Pages       *int
-	Cursor      *string
-	Raw         bool
-	Attributes  []string
-	Order       *string // "asc" or "desc"
-	Concurrent  *int
+	Limit        *int32
+	Pages        *int
+	Cursor       *string
+	Raw          bool
+	Attributes   []string
+	Order        *string // "asc" or "desc"
+	Concurrent   *int
 	IgnoreCursor bool
 }
 
@@ -314,6 +314,31 @@ type Keys map[string]interface{}
 
 // UpdateData represents update data
 type UpdateData map[string]interface{}
+
+// Error codes returned by ElectroDB operations
+const (
+	ErrBatchTooLarge       = "BatchTooLarge"
+	ErrCollectionNotFound  = "CollectionNotFound"
+	ErrCursorDecoding      = "CursorDecodingError"
+	ErrCursorEncoding      = "CursorEncodingError"
+	ErrDuplicateEntity     = "DuplicateEntity"
+	ErrDynamoDB            = "DynamoDBError"
+	ErrEntityNotFound      = "EntityNotFound"
+	ErrInvalidEntity       = "InvalidEntity"
+	ErrInvalidEnumValue    = "InvalidEnumValue"
+	ErrInvalidIndex        = "InvalidIndex"
+	ErrInvalidKeys         = "InvalidKeys"
+	ErrInvalidOperation    = "InvalidOperation"
+	ErrInvalidSchema       = "InvalidSchema"
+	ErrMarshal             = "MarshalError"
+	ErrMissingAttribute    = "MissingAttribute"
+	ErrNoClientProvided    = "NoClientProvided"
+	ErrReadOnlyViolation   = "ReadOnlyViolation"
+	ErrTransactionCanceled = "TransactionCanceled"
+	ErrTransaction         = "TransactionError"
+	ErrUnmarshal           = "UnmarshalError"
+	ErrValidation          = "ValidationError"
+)
 
 // ElectroError represents an error from ElectroDB
 type ElectroError struct {

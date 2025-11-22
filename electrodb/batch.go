@@ -128,9 +128,15 @@ func (bgr *BatchGetRequest) executeBatch(keys []Keys, tableName string) (*BatchG
 
 	// Handle unprocessed keys
 	if unprocessed, ok := response.UnprocessedKeys[tableName]; ok && len(unprocessed.Keys) > 0 {
-		// TODO: Parse unprocessed keys back to Keys format
-		for range unprocessed.Keys {
-			result.Unprocessed = append(result.Unprocessed, Keys{})
+		for _, unprocessedKey := range unprocessed.Keys {
+			var parsedKey Keys
+			err = attributevalue.UnmarshalMap(unprocessedKey, &parsedKey)
+			if err != nil {
+				// If unmarshaling fails, append empty keys to preserve count
+				result.Unprocessed = append(result.Unprocessed, Keys{})
+				continue
+			}
+			result.Unprocessed = append(result.Unprocessed, parsedKey)
 		}
 	}
 
@@ -237,9 +243,31 @@ func (bwr *BatchWriteRequest) Go() (*BatchWriteResponse, error) {
 
 	// Handle unprocessed items
 	if unprocessed, ok := response.UnprocessedItems[*tableName]; ok && len(unprocessed) > 0 {
-		// TODO: Parse unprocessed items back to Items/Keys format
 		result.Unprocessed.Puts = make([]Item, 0)
 		result.Unprocessed.Deletes = make([]Keys, 0)
+
+		for _, writeReq := range unprocessed {
+			if writeReq.PutRequest != nil {
+				var parsedItem Item
+				err := attributevalue.UnmarshalMap(writeReq.PutRequest.Item, &parsedItem)
+				if err != nil {
+					// If unmarshaling fails, append empty item to preserve count
+					result.Unprocessed.Puts = append(result.Unprocessed.Puts, Item{})
+					continue
+				}
+				result.Unprocessed.Puts = append(result.Unprocessed.Puts, parsedItem)
+			}
+			if writeReq.DeleteRequest != nil {
+				var parsedKey Keys
+				err := attributevalue.UnmarshalMap(writeReq.DeleteRequest.Key, &parsedKey)
+				if err != nil {
+					// If unmarshaling fails, append empty keys to preserve count
+					result.Unprocessed.Deletes = append(result.Unprocessed.Deletes, Keys{})
+					continue
+				}
+				result.Unprocessed.Deletes = append(result.Unprocessed.Deletes, parsedKey)
+			}
+		}
 	}
 
 	return result, nil
