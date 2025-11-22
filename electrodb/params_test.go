@@ -54,8 +54,9 @@ func TestBuildGetItemParams(t *testing.T) {
 		t.Fatal("PK is not a string value")
 	}
 
-	if pkVal.Value != "$TestService#TestEntity#id_test-123" {
-		t.Errorf("Expected PK '$TestService#TestEntity#id_test-123', got '%s'", pkVal.Value)
+	// Key values are lowercased for consistency (matching ElectroDB behavior)
+	if pkVal.Value != "$testservice#id_test-123" {
+		t.Errorf("Expected PK '$testservice#id_test-123', got '%s'", pkVal.Value)
 	}
 
 	skVal, ok := keyMap["sk"].(*types.AttributeValueMemberS)
@@ -63,8 +64,9 @@ func TestBuildGetItemParams(t *testing.T) {
 		t.Fatal("SK is not a string value")
 	}
 
-	if skVal.Value != "$TestService#TestEntity#name_John Doe" {
-		t.Errorf("Expected SK '$TestService#TestEntity#name_John Doe', got '%s'", skVal.Value)
+	// SK format: $<entity> + facet values (all lowercased)
+	if skVal.Value != "$testentity#name_john doe" {
+		t.Errorf("Expected SK '$testentity#name_john doe', got '%s'", skVal.Value)
 	}
 }
 

@@ -50,7 +50,7 @@ func (pb *ParamsBuilder) BuildGetItemParams(keys Keys, options *GetOptions) (map
 
 	// Add sort key if it exists
 	if primaryIndex.SK != nil {
-		skKey, err := pb.buildKey(*primaryIndex.SK, keys)
+		skKey, err := pb.buildKeyWithType(*primaryIndex.SK, keys, true)
 		if err != nil {
 			return nil, err
 		}
@@ -549,12 +549,24 @@ func (pb *ParamsBuilder) BuildQueryParams(
 // Helper methods
 
 func (pb *ParamsBuilder) buildKey(facetDef FacetDefinition, supplied map[string]interface{}) (internal.KeyResult, error) {
-	prefix := internal.BuildPrefix(pb.entity.schema.Service, pb.entity.schema.Entity)
+	return pb.buildKeyWithType(facetDef, supplied, false)
+}
+
+func (pb *ParamsBuilder) buildKeyWithType(facetDef FacetDefinition, supplied map[string]interface{}, isSortKey bool) (internal.KeyResult, error) {
+	var prefix string
+	if isSortKey {
+		// SK prefix: $<entity>_<version>
+		prefix = internal.BuildSortKeyPrefix(pb.entity.schema.Entity, pb.entity.schema.Version)
+	} else {
+		// PK prefix: $<service>
+		prefix = internal.BuildPartitionKeyPrefix(pb.entity.schema.Service)
+	}
+
 	labels := internal.BuildLabels(facetDef.Facets)
 
 	options := internal.KeyOptions{
-		Prefix:          prefix,
-		IsCustom:        false,
+		Prefix:           prefix,
+		IsCustom:         false,
 		ExcludeLabelTail: false,
 	}
 
@@ -616,7 +628,7 @@ func (pb *ParamsBuilder) addKeysToItem(item Item) (Item, error) {
 
 		// Build sort key if it exists
 		if index.SK != nil {
-			skKey, err := pb.buildKey(*index.SK, item)
+			skKey, err := pb.buildKeyWithType(*index.SK, item, true)
 			if err != nil {
 				return nil, err
 			}
