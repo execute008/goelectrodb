@@ -14,7 +14,7 @@ func TestMakeKey(t *testing.T) {
 		expected KeyResult
 	}{
 		{
-			name: "simple key with all facets",
+			name: "simple key with all facets - values are lowercased",
 			options: KeyOptions{
 				Prefix: "$service#entity",
 			},
@@ -30,14 +30,14 @@ func TestMakeKey(t *testing.T) {
 				{Name: "unit", Label: "unit"},
 			},
 			expected: KeyResult{
-				Key:       "$service#entity#mall_EastPointe#building_BuildingA#unit_B54",
+				Key:       "$service#entity#mall_eastpointe#building_buildinga#unit_b54",
 				Fulfilled: true,
 			},
 		},
 		{
 			name: "partial key - missing last facet",
 			options: KeyOptions{
-				Prefix:          "$service#entity",
+				Prefix:           "$service#entity",
 				ExcludeLabelTail: true,
 			},
 			facets: []string{"mall", "building", "unit"},
@@ -51,7 +51,7 @@ func TestMakeKey(t *testing.T) {
 				{Name: "unit", Label: "unit"},
 			},
 			expected: KeyResult{
-				Key:       "$service#entity#mall_EastPointe#building_BuildingA",
+				Key:       "$service#entity#mall_eastpointe#building_buildinga",
 				Fulfilled: false,
 			},
 		},
@@ -86,7 +86,7 @@ func TestMakeKey(t *testing.T) {
 				{Name: "mall", Label: "mall"},
 			},
 			expected: KeyResult{
-				Key:       "$service#entity#mall_EastPointe#suffix",
+				Key:       "$service#entity#mall_eastpointe#suffix",
 				Fulfilled: true,
 			},
 		},
@@ -104,6 +104,7 @@ func TestMakeKey(t *testing.T) {
 				{Name: "mall", Label: "mall"},
 			},
 			expected: KeyResult{
+				// Values are lowercased first, then entire key is uppercased
 				Key:       "$SERVICE#ENTITY#MALL_EASTPOINTE",
 				Fulfilled: true,
 			},
@@ -122,6 +123,7 @@ func TestMakeKey(t *testing.T) {
 				{Name: "mall", Label: "mall"},
 			},
 			expected: KeyResult{
+				// Values are already lowercased, casing option applies to entire key
 				Key:       "$service#entity#mall_eastpointe",
 				Fulfilled: true,
 			},
@@ -129,7 +131,7 @@ func TestMakeKey(t *testing.T) {
 		{
 			name: "empty key - no supplied values",
 			options: KeyOptions{
-				Prefix:          "$service#entity",
+				Prefix:           "$service#entity",
 				ExcludeLabelTail: true,
 			},
 			facets:   []string{"mall", "building"},
@@ -164,6 +166,27 @@ func TestMakeKey(t *testing.T) {
 				Fulfilled: true,
 			},
 		},
+		{
+			name: "legacy mixed-case IDs are lowercased",
+			options: KeyOptions{
+				Prefix: "$rbacservice",
+			},
+			facets: []string{"appId", "tenantId", "isActive"},
+			supplied: map[string]interface{}{
+				"appId":    "ZTNLDvUEtNANLWGmwptSm",
+				"tenantId": "D0rn0-R60iDPDACg6go5R",
+				"isActive": true,
+			},
+			labels: []FacetLabel{
+				{Name: "appId", Label: "appid"},
+				{Name: "tenantId", Label: "tenantid"},
+				{Name: "isActive", Label: "isactive"},
+			},
+			expected: KeyResult{
+				Key:       "$rbacservice#appid_ztnldvuetnanlwgmwptsm#tenantid_d0rn0-r60idpdacg6go5r#isactive_true",
+				Fulfilled: true,
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -181,27 +204,56 @@ func TestMakeKey(t *testing.T) {
 	}
 }
 
-func TestBuildPrefix(t *testing.T) {
+func TestBuildPartitionKeyPrefix(t *testing.T) {
 	tests := []struct {
 		service  string
-		entity   string
 		expected string
 	}{
 		{
 			service:  "MallStoreDirectory",
-			entity:   "MallStores",
-			expected: "$MallStoreDirectory#MallStores",
+			expected: "$mallstoredirectory",
 		},
 		{
 			service:  "UserService",
-			entity:   "User",
-			expected: "$UserService#User",
+			expected: "$userservice",
+		},
+		{
+			service:  "RBACService",
+			expected: "$rbacservice",
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.service+"/"+tt.entity, func(t *testing.T) {
-			result := BuildPrefix(tt.service, tt.entity)
+		t.Run(tt.service, func(t *testing.T) {
+			result := BuildPartitionKeyPrefix(tt.service)
+			if result != tt.expected {
+				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBuildSortKeyPrefix(t *testing.T) {
+	tests := []struct {
+		entity   string
+		version  string
+		expected string
+	}{
+		{
+			entity:   "MallStores",
+			version:  "1",
+			expected: "$mallstores_1",
+		},
+		{
+			entity:   "User",
+			version:  "",
+			expected: "$user",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.entity, func(t *testing.T) {
+			result := BuildSortKeyPrefix(tt.entity, tt.version)
 			if result != tt.expected {
 				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
 			}

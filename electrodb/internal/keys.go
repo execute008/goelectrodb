@@ -7,12 +7,12 @@ import (
 
 // KeyOptions defines options for key building
 type KeyOptions struct {
-	Prefix          string
-	IsCustom        bool
-	Casing          *string
-	Postfix         *string
+	Prefix           string
+	IsCustom         bool
+	Casing           *string
+	Postfix          *string
 	ExcludeLabelTail bool
-	ExcludePostfix  bool
+	ExcludePostfix   bool
 }
 
 // FacetLabel represents a facet with its label
@@ -61,8 +61,20 @@ func MakeKey(
 
 		foundCount++
 
-		// Append the value
-		key = fmt.Sprintf("%s%v", key, value)
+		// Append the value - format booleans consistently
+		// ElectroDB lowercases all key values by default for consistent querying
+		var formattedValue string
+		if boolVal, ok := value.(bool); ok {
+			// TypeScript ElectroDB formats booleans as strings
+			if boolVal {
+				formattedValue = "true"
+			} else {
+				formattedValue = "false"
+			}
+		} else {
+			formattedValue = strings.ToLower(fmt.Sprintf("%v", value))
+		}
+		key = fmt.Sprintf("%s%s", key, formattedValue)
 	}
 
 	// Check if all facets were fulfilled
@@ -98,18 +110,30 @@ func formatKeyCasing(key string, casing string) string {
 	}
 }
 
-// BuildPrefix builds the entity/service prefix for keys
-func BuildPrefix(service, entity string) string {
-	return fmt.Sprintf("$%s#%s", service, entity)
+// BuildPartitionKeyPrefix builds the partition key prefix
+// Format: $<service> (all lowercase)
+func BuildPartitionKeyPrefix(service string) string {
+	return fmt.Sprintf("$%s", strings.ToLower(service))
+}
+
+// BuildSortKeyPrefix builds the sort key prefix
+// Format: $<entity>_<version> (all lowercase)
+func BuildSortKeyPrefix(entity, version string) string {
+	entity = strings.ToLower(entity)
+	if version != "" {
+		return fmt.Sprintf("$%s_%s", entity, version)
+	}
+	return fmt.Sprintf("$%s", entity)
 }
 
 // BuildLabels creates FacetLabel array from facet names
+// ElectroDB uses lowercase labels in keys
 func BuildLabels(facets []string) []FacetLabel {
 	labels := make([]FacetLabel, len(facets))
 	for i, facet := range facets {
 		labels[i] = FacetLabel{
 			Name:  facet,
-			Label: facet,
+			Label: strings.ToLower(facet),
 		}
 	}
 	return labels
