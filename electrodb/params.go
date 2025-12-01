@@ -2,6 +2,7 @@ package electrodb
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -449,48 +450,64 @@ func (pb *ParamsBuilder) BuildQueryParams(
 		":pk": &types.AttributeValueMemberS{Value: pkKey.Key},
 	}
 
-	// Add sort key condition if provided
-	if skCondition != nil && index.SK != nil {
+	// Add sort key condition if provided, OR add entity prefix filter if SK exists
+	if index.SK != nil {
 		skField := index.SK.Field
-		switch skCondition.operation {
-		case "=":
-			keyCondition += fmt.Sprintf(" AND %s = :sk", skField)
-			exprAttrValues[":sk"] = &types.AttributeValueMemberS{
-				Value: fmt.Sprintf("%v", skCondition.values[0]),
+		if skCondition != nil {
+			// Explicit SK condition provided
+			switch skCondition.operation {
+			case "=":
+				keyCondition += fmt.Sprintf(" AND %s = :sk", skField)
+				exprAttrValues[":sk"] = &types.AttributeValueMemberS{
+					Value: fmt.Sprintf("%v", skCondition.values[0]),
+				}
+			case ">":
+				keyCondition += fmt.Sprintf(" AND %s > :sk", skField)
+				exprAttrValues[":sk"] = &types.AttributeValueMemberS{
+					Value: fmt.Sprintf("%v", skCondition.values[0]),
+				}
+			case ">=":
+				keyCondition += fmt.Sprintf(" AND %s >= :sk", skField)
+				exprAttrValues[":sk"] = &types.AttributeValueMemberS{
+					Value: fmt.Sprintf("%v", skCondition.values[0]),
+				}
+			case "<":
+				keyCondition += fmt.Sprintf(" AND %s < :sk", skField)
+				exprAttrValues[":sk"] = &types.AttributeValueMemberS{
+					Value: fmt.Sprintf("%v", skCondition.values[0]),
+				}
+			case "<=":
+				keyCondition += fmt.Sprintf(" AND %s <= :sk", skField)
+				exprAttrValues[":sk"] = &types.AttributeValueMemberS{
+					Value: fmt.Sprintf("%v", skCondition.values[0]),
+				}
+			case "BETWEEN":
+				keyCondition += fmt.Sprintf(" AND %s BETWEEN :sk1 AND :sk2", skField)
+				exprAttrValues[":sk1"] = &types.AttributeValueMemberS{
+					Value: fmt.Sprintf("%v", skCondition.values[0]),
+				}
+				exprAttrValues[":sk2"] = &types.AttributeValueMemberS{
+					Value: fmt.Sprintf("%v", skCondition.values[1]),
+				}
+			case "begins_with":
+				keyCondition += fmt.Sprintf(" AND begins_with(%s, :sk)", skField)
+				exprAttrValues[":sk"] = &types.AttributeValueMemberS{
+					Value: fmt.Sprintf("%v", skCondition.values[0]),
+				}
 			}
-		case ">":
-			keyCondition += fmt.Sprintf(" AND %s > :sk", skField)
-			exprAttrValues[":sk"] = &types.AttributeValueMemberS{
-				Value: fmt.Sprintf("%v", skCondition.values[0]),
+		} else {
+			// No explicit SK condition - add entity prefix to filter by entity type
+			// This is critical for single-table design where multiple entities share the same PK
+			// TypeScript ElectroDB format: $<entity>_<version>#<firstFacetLabel>_
+			// Example: $contentlike_1#likeid_
+			skPrefix := internal.BuildSortKeyPrefix(pb.entity.schema.Entity, pb.entity.schema.Version)
+			// Add the first SK facet label to match TypeScript ElectroDB format
+			if len(index.SK.Facets) > 0 {
+				firstFacet := strings.ToLower(index.SK.Facets[0])
+				skPrefix = fmt.Sprintf("%s#%s_", skPrefix, firstFacet)
 			}
-		case ">=":
-			keyCondition += fmt.Sprintf(" AND %s >= :sk", skField)
-			exprAttrValues[":sk"] = &types.AttributeValueMemberS{
-				Value: fmt.Sprintf("%v", skCondition.values[0]),
-			}
-		case "<":
-			keyCondition += fmt.Sprintf(" AND %s < :sk", skField)
-			exprAttrValues[":sk"] = &types.AttributeValueMemberS{
-				Value: fmt.Sprintf("%v", skCondition.values[0]),
-			}
-		case "<=":
-			keyCondition += fmt.Sprintf(" AND %s <= :sk", skField)
-			exprAttrValues[":sk"] = &types.AttributeValueMemberS{
-				Value: fmt.Sprintf("%v", skCondition.values[0]),
-			}
-		case "BETWEEN":
-			keyCondition += fmt.Sprintf(" AND %s BETWEEN :sk1 AND :sk2", skField)
-			exprAttrValues[":sk1"] = &types.AttributeValueMemberS{
-				Value: fmt.Sprintf("%v", skCondition.values[0]),
-			}
-			exprAttrValues[":sk2"] = &types.AttributeValueMemberS{
-				Value: fmt.Sprintf("%v", skCondition.values[1]),
-			}
-		case "begins_with":
 			keyCondition += fmt.Sprintf(" AND begins_with(%s, :sk)", skField)
-			exprAttrValues[":sk"] = &types.AttributeValueMemberS{
-				Value: fmt.Sprintf("%v", skCondition.values[0]),
-			}
+			exprAttrValues[":sk"] = &types.AttributeValueMemberS{Value: skPrefix}
 		}
 	}
 
