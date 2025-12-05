@@ -235,6 +235,7 @@ func (eh *ExecutionHelper) ExecuteQuery(
 	ctx context.Context,
 	indexName string,
 	pkFacets []interface{},
+	skFacets []interface{},
 	skCondition *sortKeyCondition,
 	options *QueryOptions,
 	filterBuilder *FilterBuilder,
@@ -244,7 +245,7 @@ func (eh *ExecutionHelper) ExecuteQuery(
 	}
 
 	builder := NewParamsBuilder(eh.entity)
-	params, err := builder.BuildQueryParams(indexName, pkFacets, skCondition, options, filterBuilder)
+	params, err := builder.BuildQueryParams(indexName, pkFacets, skFacets, skCondition, options, filterBuilder)
 	if err != nil {
 		return nil, err
 	}

@@ -417,6 +417,7 @@ func (pb *ParamsBuilder) BuildDeleteItemParams(keys Keys, options *DeleteOptions
 func (pb *ParamsBuilder) BuildQueryParams(
 	indexName string,
 	pkFacets []interface{},
+	skFacets []interface{},
 	skCondition *sortKeyCondition,
 	options *QueryOptions,
 	filterBuilder *FilterBuilder,
@@ -454,7 +455,7 @@ func (pb *ParamsBuilder) BuildQueryParams(
 	if index.SK != nil {
 		skField := index.SK.Field
 		if skCondition != nil {
-			// Explicit SK condition provided
+			// Explicit SK condition provided (e.g., .Begins(), .Eq(), etc.)
 			switch skCondition.operation {
 			case "=":
 				keyCondition += fmt.Sprintf(" AND %s = :sk", skField)
@@ -495,8 +496,25 @@ func (pb *ParamsBuilder) BuildQueryParams(
 					Value: fmt.Sprintf("%v", skCondition.values[0]),
 				}
 			}
+		} else if len(skFacets) > 0 {
+			// SK facets provided in Query() - build begins_with prefix like JS ElectroDB
+			// Example: .Query("byApp").Query(appId, "published") where "published" is status
+			// Builds: begins_with(gsi1sk, "$contentitem_1#status_published")
+			skPrefix := internal.BuildSortKeyPrefix(pb.entity.schema.Entity, pb.entity.schema.Version)
+
+			// Add each provided SK facet to the prefix
+			for i, facetValue := range skFacets {
+				if i < len(index.SK.Facets) {
+					facetName := strings.ToLower(index.SK.Facets[i])
+					facetVal := strings.ToLower(fmt.Sprintf("%v", facetValue))
+					skPrefix = fmt.Sprintf("%s#%s_%s", skPrefix, facetName, facetVal)
+				}
+			}
+
+			keyCondition += fmt.Sprintf(" AND begins_with(%s, :sk)", skField)
+			exprAttrValues[":sk"] = &types.AttributeValueMemberS{Value: skPrefix}
 		} else {
-			// No explicit SK condition - add entity prefix to filter by entity type
+			// No explicit SK condition and no SK facets - add entity prefix to filter by entity type
 			// This is critical for single-table design where multiple entities share the same PK
 			// TypeScript ElectroDB format: $<entity>_<version>#<firstFacetLabel>_
 			// Example: $contentlike_1#likeid_

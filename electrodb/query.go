@@ -16,6 +16,7 @@ type QueryChain struct {
 	accessPattern string
 	index         *IndexDefinition
 	pkFacets      []interface{}
+	skFacets      []interface{} // SK facet values for begins_with prefix (like JS ElectroDB)
 	skCondition   *sortKeyCondition
 	filters       []string
 	options       *QueryOptions
@@ -43,11 +44,27 @@ func newQueryBuilder(entity *Entity, accessPattern string, index *IndexDefinitio
 }
 
 func (qb *queryBuilderImpl) Query(facets ...interface{}) *QueryChain {
+	// Split facets between PK and SK based on index definition
+	// This allows ElectroDB-style queries like:
+	//   .Query("byApp").Query(appId, "published")
+	// where "published" is the first SK facet (status)
+	pkFacetCount := len(qb.index.PK.Facets)
+
+	var pkFacets, skFacets []interface{}
+	for i, facet := range facets {
+		if i < pkFacetCount {
+			pkFacets = append(pkFacets, facet)
+		} else {
+			skFacets = append(skFacets, facet)
+		}
+	}
+
 	return &QueryChain{
 		entity:        qb.entity,
 		accessPattern: qb.accessPattern,
 		index:         qb.index,
-		pkFacets:      facets,
+		pkFacets:      pkFacets,
+		skFacets:      skFacets,
 	}
 }
 
@@ -208,11 +225,11 @@ func (qc *QueryChain) Options(opts *QueryOptions) *QueryChain {
 // Go executes the query
 func (qc *QueryChain) Go() (*QueryResponse, error) {
 	executor := NewExecutionHelper(qc.entity)
-	return executor.ExecuteQuery(context.Background(), qc.accessPattern, qc.pkFacets, qc.skCondition, qc.options, qc.filterBuilder)
+	return executor.ExecuteQuery(context.Background(), qc.accessPattern, qc.pkFacets, qc.skFacets, qc.skCondition, qc.options, qc.filterBuilder)
 }
 
 // Params returns the DynamoDB parameters without executing
 func (qc *QueryChain) Params() (map[string]interface{}, error) {
 	builder := NewParamsBuilder(qc.entity)
-	return builder.BuildQueryParams(qc.accessPattern, qc.pkFacets, qc.skCondition, qc.options, qc.filterBuilder)
+	return builder.BuildQueryParams(qc.accessPattern, qc.pkFacets, qc.skFacets, qc.skCondition, qc.options, qc.filterBuilder)
 }
